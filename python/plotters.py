@@ -4,6 +4,9 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import sklearn.gaussian_process as gp
+from python.gp import expected_improvement
+
 
 def plot_iteration(first_param_grid, sampled_params, sampled_loss, first_iter=0, alpha=1e-5,
                    greater_is_better=True, true_y=None, second_param_grid=None,
@@ -57,26 +60,30 @@ def plot_iteration(first_param_grid, sampled_params, sampled_loss, first_iter=0,
             ei = -1 * expected_improvement(first_param_grid, model, sampled_loss[:(i + 1)],
                                            greater_is_better=greater_is_better, n_params=1)
 
-            fig, ax1, ax2 = _plot_loss_1d(first_param_grid, sampled_params[:(i + 1), :], sampled_loss[:(i + 1)], mu, std, ei, sampled_params[i + 1, :], yerr=alpha, true_y=true_y)
+            fig, ax1, ax2 = _plot_loss_1d(first_param_grid, sampled_params[:(i + 1), :], sampled_loss[:(i + 1)], mu,
+                                          std, ei, sampled_params[i + 1, :], yerr=alpha, true_y=true_y)
         else:
             # Transform grids into vectors for EI evaluation
-            param_grid = np.array([[first_param, second_param] for first_param in first_param_grid for second_param in second_param_grid])
+            param_grid = np.array(
+                [[first_param, second_param] for first_param in first_param_grid for second_param in second_param_grid])
 
             mu, std = model.predict(param_grid, return_std=True)
             ei = -1 * expected_improvement(param_grid, model, sampled_loss[:(i + 1)],
                                            greater_is_better=greater_is_better, n_params=2)
 
-            fig, ax1, ax2 = _plot_loss_2d(first_param_grid, second_param_grid, sampled_params[:(i+1), param_dims_to_plot], sampled_loss, mu, ei, sampled_params[i + 1, param_dims_to_plot], optimum)
+            fig, ax1, ax2 = _plot_loss_2d(first_param_grid, second_param_grid,
+                                          sampled_params[:(i + 1), param_dims_to_plot], sampled_loss, mu, ei,
+                                          sampled_params[i + 1, param_dims_to_plot], optimum)
 
-        if file_path is not None:
+        if filepath is not None:
             plt.savefig('%s/bo_iteration_%d.png' % (filepath, i), bbox_inches='tight')
 
 
 def _plot_loss_1d(x_grid, x_eval, y_eval, mu, std, ei, next_sample, yerr=0.0, true_y=None):
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8,8), sharex=True)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), sharex=True)
 
     # Loss function plot
-    ax1.plot(x_grid, mu, label = "GP mean")
+    ax1.plot(x_grid, mu, label="GP mean")
     ax1.fill_between(x_grid, mu - std, mu + std, alpha=0.5)
     ax1.errorbar(x_eval, y_eval, yerr, fmt='ok', zorder=3, label="Observed values")
     ax1.set_ylabel("Function value f(x)")
@@ -95,8 +102,7 @@ def _plot_loss_1d(x_grid, x_eval, y_eval, mu, std, ei, next_sample, yerr=0.0, tr
 
 
 def _plot_loss_2d(first_param_grid, second_param_grid, sampled_params, sampled_loss, mu, ei, next_sample, optimum=None):
-
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8,8), sharex=True, sharey=True)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8), sharex=True, sharey=True)
 
     X, Y = np.meshgrid(first_param_grid, second_param_grid, indexing='ij')
 
